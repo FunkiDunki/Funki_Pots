@@ -34,10 +34,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-    print(result)
+    print(result[0])
     return [
         {
             "sku": "SMALL_RED_BARREL",
-            "quantity": 1
+            "quantity": 1 if result[0]["num_red_potions"] < 10 else 0
         }
     ]
