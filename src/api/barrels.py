@@ -24,6 +24,21 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     """ """
     print(barrels_delivered)
 
+    #find out our current inventory so we can update it
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
+        row = result.first()
+    red_mls = row[1]
+    gold = row[2]
+
+    #update that info with the delivered barrels
+    for barrel in barrels_delivered:
+        red_mls += (barrel.potion_type[0] * barrel.ml_per_barrel * barrel.quantity) / 100
+        gold -= barrel.price * barrel.quantity
+    
+    #now update our database with the new information
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = :mls , gold = :g"), mls=red_mls, g=gold)
     return "OK"
 
 # Gets called once a day
@@ -35,7 +50,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory"))
     pots = result.first()[0]
-    print(pots)
     return [
         {
             "sku": "SMALL_RED_BARREL",
