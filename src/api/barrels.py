@@ -38,7 +38,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     
     #now update our database with the new information
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = :mls , gold = :g"), mls=red_mls, g=gold)
+        result = connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_ml = :mls , gold = :g", mls=red_mls, g=gold))
     return "OK"
 
 # Gets called once a day
