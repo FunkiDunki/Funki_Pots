@@ -46,4 +46,15 @@ class CartCheckout(BaseModel):
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
 
+    #TODO: change to use a carts table
+
+    #update table with purchase info:
+    with db.create_engine as connection:
+        query = sqlalchemy.text("SELECT num_red_potions, gold from global_inventory")
+        result = connection.execute(query).first()
+        result[0] -= 1
+        result[1] += 50
+        query = sqlalchemy.text("UPDATE global_inventory SET num_red_potions = :r , gold = :g")
+        connection.execute(query, {"r":result[0], "g":result[1]})
+
     return {"total_potions_bought": 1, "total_gold_paid": 50}
