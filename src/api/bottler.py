@@ -29,7 +29,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
         if potInv.potion_type[0] == 100:
             red_pots += potInv.quantity
 
-    with db.enging.begin() as connection:
+    with db.engine.begin() as connection:
         text = sqlalchemy.text("UPDATE global_inventory SET num_red_ml = :r , num_red_potions = :pots")
         result = connection.execute(text, {"r":red, "pots":red_pots})
     return "OK"
