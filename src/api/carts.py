@@ -49,7 +49,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     #TODO: change to use a carts table
 
     #update table with purchase info:
-    with db.create_engine as connection:
+    with db.engine.begin() as connection:
         query = sqlalchemy.text("SELECT num_red_potions, gold from global_inventory")
         result = connection.execute(query).first()
         result[0] -= 1
