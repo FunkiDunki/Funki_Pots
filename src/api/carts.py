@@ -52,9 +52,9 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     with db.engine.begin() as connection:
         query = sqlalchemy.text("SELECT num_red_potions, gold from global_inventory")
         result = connection.execute(query).first()
-        result[0] -= 1
-        result[1] += 50
+        pots = result[0] - 1
+        gold = result[1] + 50
         query = sqlalchemy.text("UPDATE global_inventory SET num_red_potions = :r , gold = :g")
-        connection.execute(query, {"r":result[0], "g":result[1]})
+        connection.execute(query, {"r":pots, "g":gold})
 
     return {"total_potions_bought": 1, "total_gold_paid": 50}

@@ -28,12 +28,12 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
         row = result.first()
-    red_mls = row[1]
-    gold = row[2]
+    red_mls = row[1] + 0
+    gold = row[2] + 0
 
     #update that info with the delivered barrels
     for barrel in barrels_delivered:
-        red_mls += (barrel.potion_type[0] * barrel.ml_per_barrel * barrel.quantity) / 100
+        red_mls += (barrel.potion_type[0] * barrel.ml_per_barrel * barrel.quantity) // 100
         gold -= barrel.price * barrel.quantity
     
     #now update our database with the new information

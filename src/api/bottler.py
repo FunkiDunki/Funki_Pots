@@ -21,8 +21,8 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_red_potions FROM global_inventory"))
     result = result.first()
-    red = result[0]
-    red_pots = result[1]
+    red = result[0] + 0
+    red_pots = result[1] + 0
     print(potions_delivered)
     for potInv in potions_delivered:
         red -= potInv.potion_type[0] * potInv.quantity
