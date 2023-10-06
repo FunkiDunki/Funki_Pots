@@ -19,6 +19,11 @@ def reset():
     with db.engine.begin() as connection:
         query = sqlalchemy.text("UPDATE global_inventory SET num_red_potions = 0, num_red_ml = 0, gold = 100")
         connection.execute(query)
+
+        q2 = sqlalchemy.text("UPDATE inventory SET amount = 0")
+        connection.execute(q2)
+        q2 = sqlalchemy.text("UPDATE inventory SET amount = 100 WHERE item_id = 'gold'")
+        connection.execute(q2)
     return "OK"
 
 
@@ -28,7 +33,7 @@ def get_shop_info():
 
     # TODO: Change me!
     return {
-        "shop_name": "Potion Shop",
-        "shop_owner": "Potion Seller",
+        "shop_name": "Funki Pots",
+        "shop_owner": "Nicholas Hotelling",
     }
 
