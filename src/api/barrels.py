@@ -27,7 +27,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     #find out our current inventory so we can update it
     with db.engine.begin() as connection:
         result = connection.execute(
-            sqlalchemy.text("SELECT stock, ingredient, ingredient_order FROM inventory WHERE ingredient = TRUE SORT BY ingredient_order ASC")
+            sqlalchemy.text("SELECT stock, ingredient, ingredient_order FROM inventory WHERE ingredient = TRUE ORDER BY ingredient_order ASC")
             )
         mls = result.all()
         result = connection.execute(

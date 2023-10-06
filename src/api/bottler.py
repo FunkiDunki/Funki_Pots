@@ -22,7 +22,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     with db.engine.begin() as connection:
         red_pots = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE name = 'red potions'")).first()
         mls = connection.execute(
-            sqlalchemy.text("SELECT stock, ingredient, ingredient_order FROM inventory WHERE ingredient = TRUE SORT BY ingredient_order ASC")
+            sqlalchemy.text("SELECT stock, ingredient, ingredient_order FROM inventory WHERE ingredient = TRUE ORDER BY ingredient_order ASC")
         ).all()
     red = mls[0]
 
