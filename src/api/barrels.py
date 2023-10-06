@@ -31,7 +31,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
             )
         mls = result.all()
         result = connection.execute(
-            sqlalchemy.text("SELECT name, stock WHERE name = gold")
+            sqlalchemy.text("SELECT name, stock FROM inventory WHERE name = 'gold'")
         )
         gold = result.first().stock
     red_mls = mls[0].stock
@@ -45,7 +45,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     with db.engine.begin() as connection:
         query = sqlalchemy.text("UPDATE inventory SET stock = :mls WHERE ingredient = TRUE AND ingredient_order = 0")
         result = connection.execute(query, {'mls': red_mls})
-        query = sqlalchemy.text("UPDATE inventory SET stock = :g WHERE name = gold")
+        query = sqlalchemy.text("UPDATE inventory SET stock = :g WHERE name = 'gold'")
         connection.execute(query, {'g': gold})
     return "OK"
 

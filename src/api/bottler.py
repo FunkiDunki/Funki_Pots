@@ -20,11 +20,11 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
     #find our current stock of potions and ingredients for potions
     with db.engine.begin() as connection:
-        red_pots = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE name = 'red potions'")).first()
+        red_pots = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE name = 'red potion'")).first().stock
         mls = connection.execute(
             sqlalchemy.text("SELECT stock, ingredient, ingredient_order FROM inventory WHERE ingredient = TRUE ORDER BY ingredient_order ASC")
         ).all()
-    red = mls[0]
+    red = mls[0].stock
 
     print(potions_delivered)
 
@@ -37,11 +37,11 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     #now, update our stock of potions and ingredients according to those changes
     with db.engine.begin() as connection:
         connection.execute(
-            sqlalchemy.text("UPDATE inventory SET stock = :s WHERE name = 'red mls'"),
+            sqlalchemy.text("UPDATE inventory SET stock = :s WHERE name = 'red ml'"),
             {'s': red}
         )
         connection.execute(
-            sqlalchemy.text("UPDATE inventory SET stock = :s WHERE name = 'red potions'"),
+            sqlalchemy.text("UPDATE inventory SET stock = :s WHERE name = 'red potion'"),
             {'s': red_pots}
         )
     return "OK"
@@ -54,7 +54,7 @@ def get_bottle_plan():
     """
     #find our current stock of red mls
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT name, stock from inventory WHERE name = 'red mls'"))
+        result = connection.execute(sqlalchemy.text("SELECT sku, stock from inventory WHERE sku = 'RED_ML'"))
         red = result.first()
     # Each bottle has a quantity of what proportion of red, blue, and
     # green potion to add.

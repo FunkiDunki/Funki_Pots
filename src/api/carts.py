@@ -54,7 +54,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     #check database to find all items in their cart
     with db.engine.begin() as connection:
         query = sqlalchemy.text(
-            "SELECT (sku, price, stock, amount) FROM cart_items JOIN inventory ON cart_items.item_sku = inventory.sku WHERE cart_items.cart_id = :cid"
+            "SELECT (sku, price, stock, amount) FROM cart_items JOIN inventory ON cart_items.item_sku = inventory.sku WHERE cart_items.cart_id = ':cid'"
         )
         purchases = connection.execute(
             query,
