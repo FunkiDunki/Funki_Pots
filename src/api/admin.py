@@ -22,7 +22,7 @@ def reset():
 
         q2 = sqlalchemy.text("UPDATE inventory SET amount = 0")
         connection.execute(q2)
-        q2 = sqlalchemy.text("UPDATE inventory SET amount = 100 WHERE item_id = 'gold'")
+        q2 = sqlalchemy.text("UPDATE inventory SET amount = 100 WHERE name = 'gold'")
         connection.execute(q2)
     return "OK"
 

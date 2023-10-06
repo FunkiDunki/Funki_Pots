@@ -26,10 +26,15 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 
     #find out our current inventory so we can update it
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT * FROM global_inventory"))
-        row = result.first()
-    red_mls = row[1] + 0
-    gold = row[2] + 0
+        result = connection.execute(
+            sqlalchemy.text("SELECT stock, ingredient, ingredient_order FROM inventory WHERE ingredient = TRUE SORT BY ingredient_order ASC")
+            )
+        mls = result.all()
+        result = connection.execute(
+            sqlalchemy.text("SELECT name, stock WHERE name = gold")
+        )
+        gold = result.first().stock
+    red_mls = mls[0].stock
 
     #update that info with the delivered barrels
     for barrel in barrels_delivered:
@@ -38,9 +43,10 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     
     #now update our database with the new information
     with db.engine.begin() as connection:
-        query = sqlalchemy.text("UPDATE global_inventory SET num_red_ml = :mls , gold = :g")
-        result = connection.execute(query, {'mls': red_mls, 'g': gold})
-        connection.commit()
+        query = sqlalchemy.text("UPDATE inventory SET stock = :mls WHERE ingredient = TRUE AND ingredient_order = 0")
+        result = connection.execute(query, {'mls': red_mls})
+        query = sqlalchemy.text("UPDATE inventory SET stock = :g WHERE name = gold")
+        connection.execute(query, {'g': gold})
     return "OK"
 
 # Gets called once a day
@@ -50,8 +56,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     print(wholesale_catalog)
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory"))
-    pots = result.first()[0]
+        result = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE name = 'red potion'"))
+    pots = result.first().stock
     return [
         {
             "sku": "SMALL_RED_BARREL",
