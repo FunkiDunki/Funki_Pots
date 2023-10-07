@@ -19,8 +19,8 @@ class NewCart(BaseModel):
 def create_cart(new_cart: NewCart):
     """ """
     with db.engine.begin() as connection:
-        query = sqlalchemy.text("INSERT INTO carts (customer_name) VALUES (':c') RETURNING cart_id")
-        result = connection.execute(query, {'c':new_cart.customer}).all()[0]
+        query = sqlalchemy.text("INSERT INTO carts (customer_name) VALUES ( :c ) RETURNING cart_id")
+        result = connection.execute(query, {'c':new_cart.customer}).first().cart_id
     return {"cart_id": result}
 
 
@@ -39,7 +39,7 @@ class CartItem(BaseModel):
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
     with db.engine.begin() as connection:
-        query = sqlalchemy.text("INSERT INTO cart_items (cart_id, item_sku, amount) VALUES (':cart', ':sk', ':am')")
+        query = sqlalchemy.text("INSERT INTO cart_items (cart_id, item_sku, amount) VALUES (:cart, :sk, :am)")
         connection.execute(query, {'cart':cart_id, 'sk':item_sku, 'am':cart_item.quantity})
     return "OK"
 
@@ -54,7 +54,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     #check database to find all items in their cart
     with db.engine.begin() as connection:
         query = sqlalchemy.text(
-            "SELECT (sku, price, stock, amount) FROM cart_items JOIN inventory ON cart_items.item_sku = inventory.sku WHERE cart_items.cart_id = ':cid'"
+            "SELECT (sku, price, stock, amount) FROM cart_items JOIN inventory ON cart_items.item_sku = inventory.sku WHERE cart_items.cart_id = :cid"
         )
         purchases = connection.execute(
             query,
