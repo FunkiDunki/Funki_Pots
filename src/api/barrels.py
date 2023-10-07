@@ -38,7 +38,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 
     #update that info with the delivered barrels
     for barrel in barrels_delivered:
-        red_mls += (barrel.potion_type[0] * barrel.ml_per_barrel * barrel.quantity) // 100
+        red_mls += (barrel.potion_type[0] * barrel.ml_per_barrel * barrel.quantity)
         gold -= barrel.price * barrel.quantity
     
     #now update our database with the new information
