@@ -22,7 +22,7 @@ def get_catalog():
                 "name": row.name,
                 "quantity": row.stock,
                 "price": row.price,
-                "potion_type": row.potion_type,
+                "potion_type": [row.potion_type[0], row.potion_type[1], row.potion_type[2], row.potion_type[3]],
             }
             for row in result
         ]
