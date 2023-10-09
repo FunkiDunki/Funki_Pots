@@ -35,16 +35,20 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
         )
         gold = result.first().stock
     red_mls = mls[0].stock
+    green_mls = mls[1].stock
 
     #update that info with the delivered barrels
     for barrel in barrels_delivered:
         red_mls += (barrel.potion_type[0] * barrel.ml_per_barrel * barrel.quantity)
+        green_mls += (barrel.potion_type[1] * barrel.ml_per_barrel * barrel.quantity)
         gold -= barrel.price * barrel.quantity
     
     #now update our database with the new information
     with db.engine.begin() as connection:
-        query = sqlalchemy.text("UPDATE inventory SET stock = :mls WHERE ingredient = TRUE AND ingredient_order = 0")
+        query = sqlalchemy.text("UPDATE inventory SET stock = :mls WHERE sku = 'RED_ML'")
         result = connection.execute(query, {'mls': red_mls})
+        query = sqlalchemy.text("UPDATE inventory SET stock = :mls WHERE sku = 'GREEN_ML'")
+        connection.execute(query, {'mls': green_mls})
         query = sqlalchemy.text("UPDATE inventory SET stock = :g WHERE name = 'gold'")
         connection.execute(query, {'g': gold})
     return "OK"
@@ -56,11 +60,12 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     print(wholesale_catalog)
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE name = 'red potion'"))
-    pots = result.first().stock
+        result = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE name = 'green potion'"))
+        pots = result.first().stock
+        gold = connection.execute(sqlalchemy.text("SELECT name, stock FROM invenotyr WHERE sku = 'GOLD'")).first().stock
     return [
         {
-            "sku": "SMALL_RED_BARREL",
-            "quantity": 1 if pots < 10 else 0
+            "sku": "MINI_GREEN_BARREL",
+            "quantity": 1 if pots < 10 and gold >= 60 else 0
         }
     ]
