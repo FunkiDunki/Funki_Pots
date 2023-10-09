@@ -63,9 +63,13 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         result = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE name = 'green potion'"))
         pots = result.first().stock
         gold = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE sku = 'GOLD'")).first().stock
-    return [
-        {
+    
+    plan = []
+
+    if pots < 10 and gold >= 60:
+        plan.append({
             "sku": "MINI_GREEN_BARREL",
-            "quantity": 1 if pots < 10 and gold >= 60 else 0
-        }
-    ]
+            "quantity": 1
+        })
+
+    return plan
