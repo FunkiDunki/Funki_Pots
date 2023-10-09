@@ -62,7 +62,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection:
         result = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE name = 'green potion'"))
         pots = result.first().stock
-        gold = connection.execute(sqlalchemy.text("SELECT name, stock FROM invenotyr WHERE sku = 'GOLD'")).first().stock
+        gold = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE sku = 'GOLD'")).first().stock
     return [
         {
             "sku": "MINI_GREEN_BARREL",
