@@ -16,13 +16,15 @@ def get_catalog():
         query = sqlalchemy.text("SELECT * FROM inventory WHERE for_sale = TRUE")
         result = connection.execute(query).all()
 
-    return [
-            {
+    cata = []
+
+    for row in result:
+        if row.stock >= 1:
+            cata.append({
                 "sku": row.sku,
                 "name": row.name,
                 "quantity": row.stock,
                 "price": row.price,
-                "potion_type": [row.potion_type[0], row.potion_type[1], row.potion_type[2], row.potion_type[3]],
-            }
-            for row in result
-        ]
+                "potion_type": [row.potion_type[0], row.potion_type[1], row.potion_type[2], row.potion_type[3]]
+            })
+    return cata
