@@ -111,7 +111,7 @@ def get_bottle_plan():
     if blue.stock >= 100:
         plan.append({
             "potion_type": [0, 0, 100, 0],
-            "quantity": blue.sock // 100
+            "quantity": blue.stock // 100
         })
 
     return plan
