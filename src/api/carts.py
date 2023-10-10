@@ -39,8 +39,20 @@ class CartItem(BaseModel):
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
     with db.engine.begin() as connection:
-        query = sqlalchemy.text("INSERT INTO cart_items (cart_id, item_sku, amount) VALUES (:cart, :sk, :am)")
-        connection.execute(query, {'cart':cart_id, 'sk':item_sku, 'am':cart_item.quantity})
+        price = connection.execute(
+            sqlalchemy.text("SELECT price FROM potions WHERE sku = :sk"),
+            { 'sk': item_sku }
+        ).first().price
+        connection.execute(
+            sqlalchemy.text("INSERT INTO cart_items (cart_id, item_sku, amount, historic_price) \
+                            VALUES (:cart, :sk, :am, :price)"),
+            {
+                'cart': cart_id,
+                'sk': item_sku,
+                'am': cart_item.quantity,
+                'price': price
+            }
+        )
     return "OK"
 
 
@@ -54,11 +66,8 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     #check database to find all items in their cart
     with db.engine.begin() as connection:
         #find all the purchases made
-        query = sqlalchemy.text(
-            "SELECT sku, price, amount FROM cart_items JOIN potions ON cart_items.item_sku = potions.sku WHERE cart_items.cart_id = :cid"
-        )
         purchases = connection.execute(
-            query,
+            sqlalchemy.text("SELECT item_sku, historic_price, amount FROM cart_items WHERE cart_items.cart_id = :cid"),
             {
                 'cid':cart_id
             }
@@ -69,26 +78,28 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
 
     with db.engine.begin() as connection:
         for purchase in purchases:
-            gold_paid += purchase.price * purchase.amount
+            gold_paid += purchase.historic_price * purchase.amount
             pots_bought += purchase.amount
-            query = sqlalchemy.text(
-                "UPDATE inventory SET stock = stock - :am WHERE sku = :sk"
-            )
             connection.execute(
-                query,
+                sqlalchemy.text("UPDATE inventory SET stock = stock - :am WHERE sku = :sk"),
                 {
                     'am': purchase.amount,
-                    'sk': purchase.sku
+                    'sk': purchase.item_sku
                 }
             )
         #now we update our gold
-        query = sqlalchemy.text(
-            "UPDATE inventory SET stock = stock + :g WHERE sku = 'GOLD'"
-        )
+        
         connection.execute(
-            query,
+            sqlalchemy.text("UPDATE inventory SET stock = stock + :g WHERE sku = 'GOLD'"),
             {
                 'g': gold_paid
+            }
+        )
+        connection.execute(
+            sqlalchemy.text("UPDATE carts SET payment = :pay WHERE cart_id = :cid"),
+            {
+                'pay': cart_checkout.payment,
+                'cid': cart_id
             }
         )
     
