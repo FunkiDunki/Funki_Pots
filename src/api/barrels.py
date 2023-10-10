@@ -75,17 +75,18 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             "sku": "SMALL_BLUE_BARREL",
             "quantity": 1
         })
-        price += 60
+        price += 100
     if red_pots < 10 and gold - price >= 100:
         plan.append({
             "sku": "SMALL_RED_BARREL",
             "quantity": 1
         })
-        price += 60
+        price += 100
     if green_pots < 10 and gold - price >= 100:
         plan.append({
             "sku": "SMALL_GREEN_BARREL",
             "quantity": 1
         })
+        price += 100
 
     return plan
