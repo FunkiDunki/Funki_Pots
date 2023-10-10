@@ -60,33 +60,54 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         result = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE sku = 'BLUE_POTION_0'"))
         blue_pots = result.first().stock
         gold = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE sku = 'GOLD'")).first().stock
+
         red_pots = connection.execute(
             sqlalchemy.text("SELECT stock FROM inventory WHERE sku = 'RED_POTION_0'")
         ).first().stock
+
         green_pots = connection.execute(sqlalchemy.text(
             "SELECT stock FROM inventory WHERE sku = 'GREEN_POTION_0'"
         )).first().stock
+
+        barrel_spam = connection.execute(
+            sqlalchemy.text("SELECT stringish, active FROM launch_codes WHERE code = 'BARREL_SPAM'")
+        ).first()
     
+
     price = 0
     plan = []
 
-    if blue_pots < 10 and gold >= 100:
-        plan.append({
-            "sku": "SMALL_BLUE_BARREL",
-            "quantity": 1
-        })
-        price += 100
-    if red_pots < 10 and gold - price >= 100:
-        plan.append({
-            "sku": "SMALL_RED_BARREL",
-            "quantity": 1
-        })
-        price += 100
-    if green_pots < 10 and gold - price >= 100:
-        plan.append({
-            "sku": "SMALL_GREEN_BARREL",
-            "quantity": 1
-        })
-        price += 100
+    if barrel_spam.active:
+        #we just want to spam this one barrel if we can, do nothing if else
+        for barrel in wholesale_catalog:
+            if barrel.sku == barrel_spam.stringish and gold >= barrel.price:
+                #add as many of this barrel as we can until we have not enough gold or there aren't enough barrels for sale
+                amount = min(gold // barrel.price, barrel.quantity)
+                price = amount * barrel.price
+                plan.append({
+                    "sku": barrel.sku,
+                    "quantity": amount
+                })
+
+
+    else:
+        if blue_pots < 10 and gold >= 100:
+            plan.append({
+                "sku": "SMALL_BLUE_BARREL",
+                "quantity": 1
+            })
+            price += 100
+        if red_pots < 10 and gold - price >= 100:
+            plan.append({
+                "sku": "SMALL_RED_BARREL",
+                "quantity": 1
+            })
+            price += 100
+        if green_pots < 10 and gold - price >= 100:
+            plan.append({
+                "sku": "SMALL_GREEN_BARREL",
+                "quantity": 1
+            })
+            price += 100
 
     return plan
