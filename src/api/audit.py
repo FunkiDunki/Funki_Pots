@@ -19,12 +19,12 @@ def get_inventory():
         q1 = sqlalchemy.text("SELECT stock, sku FROM inventory WHERE sku = 'GOLD'")
         gold = connection.execute(q1).first().stock
         #find number of potions
-        q2 = sqlalchemy.text("SELECT stock, sku FROM inventory WHERE for_sale = TRUE")
+        q2 = sqlalchemy.text("SELECT stock, sku FROM inventory WHERE sku IN (SELECT sku FROM potions)")
         pots = connection.execute(q2).all()
         pots = [r.stock for r in pots]
         pots = sum(pots)
         #find the total mls
-        q3 = sqlalchemy.text("SELECT stock, sku FROM inventory WHERE ingredient = TRUE")
+        q3 = sqlalchemy.text("SELECT stock, sku FROM inventory WHERE sku IN (SELECT sku FROM ingredients)")
         mls = connection.execute(q3).all()
         mls = [r.stock for r in mls]
         mls = sum(mls)

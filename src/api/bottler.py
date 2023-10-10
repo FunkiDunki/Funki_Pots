@@ -18,59 +18,41 @@ class PotionInventory(BaseModel):
 @router.post("/deliver")
 def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
-    #find our current stock of potions and ingredients for potions
-    with db.engine.begin() as connection:
-        red_pots = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE name = 'red potion'")).first().stock
-        green_pots = connection.execute(sqlalchemy.text("SELECT name, stock FROM  inventory WHERE sku = 'GREEN_POTION_0'")).first().stock
-        mls = connection.execute(
-            sqlalchemy.text("SELECT stock, ingredient, ingredient_order FROM inventory WHERE ingredient = TRUE ORDER BY ingredient_order ASC")
-        ).all()
-    red = mls[0].stock
-    green = mls[1].stock
 
-    blue = 0
-    blue_pots = 0
+    ingredients = [0, 0, 0, 0]
+    pots = []
 
     print(potions_delivered)
 
     #for each potion delivered, subtract the ingredients used and add the resulting potion
     for potInv in potions_delivered:
-        red -= potInv.potion_type[0] * potInv.quantity
-        green -= potInv.potion_type[1] * potInv.quantity
-        blue -= potInv.potion_type[2] * potInv.quantity
-        if potInv.potion_type[0] == 100:
-            red_pots += potInv.quantity
-        elif potInv.potion_type[1] == 100:
-            green_pots += potInv.quantity
-        elif potInv.potion_type[2] == 100:
-            blue_pots += potInv.quantity
+        ingredients = [ingredients[i] - (amount * potInv.quantity) for i, amount in enumerate(potInv.potion_type)]
+        pots.append({
+            "potion-type": potInv.potion_type,
+            "quantity": potInv.quantity
+        })
 
     #now, update our stock of potions and ingredients according to those changes
     with db.engine.begin() as connection:
-        connection.execute(
-            sqlalchemy.text("UPDATE inventory SET stock = :s WHERE name = 'green ml'"),
-            {'s': green}
-        )
-        connection.execute(
-            sqlalchemy.text("UPDATE inventory SET stock = :s WHERE name = 'green potion'"),
-            {'s': green_pots}
-        )
-        connection.execute(
-            sqlalchemy.text("UPDATE inventory SET stock = :s WHERE name = 'red ml'"),
-            {'s': red}
-        )
-        connection.execute(
-            sqlalchemy.text("UPDATE inventory SET stock = :s WHERE name = 'red potion'"),
-            {'s': red_pots}
-        )
-        connection.execute(
-            sqlalchemy.text("UPDATE inventory SET stock = stock + :s WHERE sku = 'BLUE_POTION_0'"),
-            {'s': blue_pots}
-        )
-        connection.execute(
-            sqlalchemy.text("UPDATE inventory SET stock = stock + :s WHERE sku = 'BLUE_ML'"),
-            {'s': blue}
-        )
+        for i, ml in enumerate(ingredients):
+            connection.execute(
+                sqlalchemy.text("UPDATE inventory SET stock = stock + :am \
+                                WHERE sku IN (SELECT sku FROM ingredients WHERE ingredient_order = :idx )"),
+                {
+                    'am': ml,
+                    'idx': i
+                }
+            )
+        for i, pot in enumerate(pots):
+            pt = pot["potion-type"]
+            connection.execute(
+                sqlalchemy.text("UPDATE inventory SET stock = stock + :am \
+                                WHERE sku IN (SELECT sku FROM potions WHERE recipe = :rec)"),
+                {
+                    'am': pot["quantity"],
+                    'rec': pt
+                }
+            )
     return "OK"
 
 # Gets called 4 times a day

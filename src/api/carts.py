@@ -53,8 +53,9 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
 
     #check database to find all items in their cart
     with db.engine.begin() as connection:
+        #find all the purchases made
         query = sqlalchemy.text(
-            "SELECT sku, price, stock, amount FROM cart_items JOIN inventory ON cart_items.item_sku = inventory.sku WHERE cart_items.cart_id = :cid"
+            "SELECT sku, price, amount FROM cart_items JOIN potions ON cart_items.item_sku = potions.sku WHERE cart_items.cart_id = :cid"
         )
         purchases = connection.execute(
             query,
@@ -71,25 +72,23 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             gold_paid += purchase.price * purchase.amount
             pots_bought += purchase.amount
             query = sqlalchemy.text(
-                "UPDATE inventory SET stock = :s_new WHERE sku = :sk"
+                "UPDATE inventory SET stock = stock - :am WHERE sku = :sk"
             )
             connection.execute(
                 query,
                 {
-                    's_new': purchase.stock - purchase.amount,
+                    'am': purchase.amount,
                     'sk': purchase.sku
                 }
             )
         #now we update our gold
-        query = sqlalchemy.text("SELECT stock FROM inventory WHERE sku = 'GOLD'")
-        g_old = connection.execute(query).first()[0]
         query = sqlalchemy.text(
-            "UPDATE inventory SET stock = :g WHERE sku = 'GOLD'"
+            "UPDATE inventory SET stock = stock + :g WHERE sku = 'GOLD'"
         )
         connection.execute(
             query,
             {
-                'g': g_old + gold_paid
+                'g': gold_paid
             }
         )
     

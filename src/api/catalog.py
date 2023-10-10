@@ -13,7 +13,8 @@ def get_catalog():
 
     # Can return a max of 20 items.
     with db.engine.begin() as connection:
-        query = sqlalchemy.text("SELECT * FROM inventory WHERE for_sale = TRUE")
+        query = sqlalchemy.text("SELECT i.sku AS sku, name, stock, p.price as price, recipe FROM \
+                                inventory i JOIN potions p ON i.sku = p.sku")
         result = connection.execute(query).all()
 
     cata = []
@@ -25,6 +26,6 @@ def get_catalog():
                 "name": row.name,
                 "quantity": row.stock,
                 "price": row.price,
-                "potion_type": [row.potion_type[0], row.potion_type[1], row.potion_type[2], row.potion_type[3]]
+                "potion_type": row.recipe
             })
     return cata
