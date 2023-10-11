@@ -57,57 +57,30 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     print(wholesale_catalog)
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE sku = 'BLUE_POTION_0'"))
-        blue_pots = result.first().stock
         gold = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE sku = 'GOLD'")).first().stock
-
-        red_pots = connection.execute(
-            sqlalchemy.text("SELECT stock FROM inventory WHERE sku = 'RED_POTION_0'")
-        ).first().stock
-
-        green_pots = connection.execute(sqlalchemy.text(
-            "SELECT stock FROM inventory WHERE sku = 'GREEN_POTION_0'"
-        )).first().stock
-
-        barrel_spam = connection.execute(
-            sqlalchemy.text("SELECT stringish, active FROM launch_codes WHERE code = 'BARREL_SPAM'")
-        ).first()
+        wishlist = connection.execute(
+            sqlalchemy.text("SELECT sku, amount FROM barrel_wishlist WHERE amount > 0 ORDER BY priority ASC")
+        ).all()
     
 
     price = 0
     plan = []
 
-    if barrel_spam.active:
-        #we just want to spam this one barrel if we can, do nothing if else
+    #for each item we want, check if it is for sale:
+    for dream in wishlist:
         for barrel in wholesale_catalog:
-            if barrel.sku == barrel_spam.stringish and gold >= barrel.price:
-                #add as many of this barrel as we can until we have not enough gold or there aren't enough barrels for sale
-                amount = min(gold // barrel.price, barrel.quantity)
-                price = amount * barrel.price
-                plan.append({
-                    "sku": barrel.sku,
-                    "quantity": amount
-                })
-
-
-    else:
-        if gold >= 300:
+            #check if this is the dream item
+            if barrel.sku != dream.sku:
+                continue
+            #now check if we have enough gold
+            if gold - price < barrel.price:
+                continue #we don't have enough for one of them
+            #now we add however many we can afford, limited by the amount we want and the amount for sale
+            i = min((gold - price) // barrel.price, dream.amount, barrel.quantity)
+            price += i * barrel.price
             plan.append({
-                "sku": "MEDIUM_BLUE_BARREL",
-                "quantity": 1
+                "sku": barrel.sku,
+                "quantity": i
             })
-            price += 250
-        if gold - price >= 250:
-            plan.append({
-                "sku": "MEDIUM_RED_BARREL",
-                "quantity": 1
-            })
-            price += 250
-        if gold - price >= 250:
-            plan.append({
-                "sku": "MEDIUM_GREEN_BARREL",
-                "quantity": 1
-            })
-            price += 250
 
     return plan
