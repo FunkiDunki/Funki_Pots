@@ -91,7 +91,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
 
     else:
-        if gold >= 250:
+        if gold >= 300:
             plan.append({
                 "sku": "MEDIUM_BLUE_BARREL",
                 "quantity": 1
