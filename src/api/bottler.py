@@ -61,39 +61,45 @@ def get_bottle_plan():
     """
     Go from barrel to bottle.
     """
-    #find our current stock of red mls
+    #find our current stock of ingredients, and our potion wishlist 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT sku, stock from inventory WHERE sku = 'RED_ML'"))
-        red = result.first()
-        result = connection.execute(sqlalchemy.text("SELECT sku, stock from inventory WHERE sku = 'GREEN_ML'"))
-        green = result.first()
-        blue = connection.execute(
-            sqlalchemy.text("SELECT sku, stock FROM inventory WHERE sku = 'BLUE_ML'")
-        ).first()
-    # Each bottle has a quantity of what proportion of red, blue, and
-    # green potion to add.
-    # Expressed in integers from 1 to 100 that must sum up to 100.
-
-    # Initial logic: bottle all barrels into red potions.
-
-    #say that we want to bottle it all
-
+        ingredients = connection.execute(
+            sqlalchemy.text("SELECT inventory.sku as sku, ingredient_order, stock FROM \
+                            inventory JOIN ingredients ON inventory.sku = ingredients.sku \
+                            ORDER BY ingredient_order ASC")
+        ).all()
+        wishlist = connection.execute(
+            sqlalchemy.text("SELECT recipe, stock, amount FROM \
+                            inventory JOIN \
+                            (SELECT sku, priority, amount, recipe FROM \
+                            potions JOIN potions_wishlist ON potions.id = potions_wishlist.potion_id) AS pots \
+                            ON inventory.sku = pots.sku \
+                            ORDER BY pots.priority ASC")
+        ).all()
+    
+    ingredients = [row.stock for row in ingredients]
     plan = []
 
-    if red.stock >= 100:
-        plan.append({
-            "potion_type": [100, 0, 0, 0],
-            "quantity": red.stock //100
-        })
-    if green.stock >= 100:
-        plan.append({
-            "potion_type": [0, 100, 0, 0],
-            "quantity": green.stock //100
-        })
-    if blue.stock >= 100:
-        plan.append({
-            "potion_type": [0, 0, 100, 0],
-            "quantity": blue.stock // 100
-        })
+    #go through our wishlist, by priority
+    for wish in wishlist:
+        #check how many we can make
+        num_pots = 0#number of potions we can make
+        any_yet = False#flag for whether we've used any ingredients for this recipe
+        for i, ml in enumerate(wish.recipe):
+            if ml == 0:
+                continue #we shouldn't be checking how many times we can make the 0 cost parts of a recipe
+            tmp = min(ingredients[i] // ml, wish.amount - wish.stock)#how many potions we can make if they only cost this ingredient
+            if any_yet:
+                num_pots = min(tmp, num_pots)#how many potions we can make, including any previous ingredients
+            else:
+                num_pots = tmp
+        #based on how many pots we could make, add to the plan and subtract from ingredients
+        if num_pots > 0:
+            plan.append({
+                "potion_type": wish.recipe,
+                "quantity": num_pots
+            })
+            for i, ml in enumerate(wish.recipe):
+                ingredients[i] -= ml * num_pots #subtract ingredients
 
     return plan
