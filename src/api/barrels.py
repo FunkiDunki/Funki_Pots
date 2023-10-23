@@ -36,18 +36,31 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     #now update our database with the new information
     with db.engine.begin() as connection:
         for i, ml in enumerate(ingredients):
+            if ml == 0:
+                continue
             #for each ingredient, add to our stock based on how much we got from these barrels
-            connection.execute(
-                sqlalchemy.text("UPDATE inventory SET stock = stock + :m WHERE sku IN (SELECT sku FROM ingredients WHERE ingredient_order = :idx)"),
+            ml_transaction = connection.execute(
+                sqlalchemy.text("INSERT INTO transactions (sku, change, description) \
+                                VALUES ((SELECT sku FROM ingredients WHERE ingredient_order = :idx), :ch, :desc) \
+                                RETURNING transaction_id"),
                 {
-                    'm': ml,
-                    'idx': i
+                    'idx': i,
+                    'ch': ml,
+                    'desc': "got ingredients from barrel"
                 }
-            )
+            ).first()
 
         #subtract the cost from our gold
-        query = sqlalchemy.text("UPDATE inventory SET stock = stock - :c WHERE sku = 'GOLD'")
-        connection.execute(query, {'c': cost})
+        gold_transaction = connection.execute(
+            sqlalchemy.text("INSERT INTO transactions (sku, change, description) \
+                            VALUES ('GOLD', :c, :desc) \
+                            RETURNING transaction_id"),
+            {
+                'c': -cost,
+                'desc': "purchased barrels"
+            }
+        ).first()
+
     return "OK"
 
 # Gets called once a day
@@ -57,7 +70,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     print(wholesale_catalog)
 
     with db.engine.begin() as connection:
-        gold = connection.execute(sqlalchemy.text("SELECT name, stock FROM inventory WHERE sku = 'GOLD'")).first().stock
+        gold = connection.execute(sqlalchemy.text("SELECT COALESCE(SUM(change), 0) stock FROM transactions WHERE sku = 'GOLD'")).first().stock
         wishlist = connection.execute(
             sqlalchemy.text("SELECT sku, amount FROM barrel_wishlist WHERE amount > 0 ORDER BY priority ASC")
         ).all()

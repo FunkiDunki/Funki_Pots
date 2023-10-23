@@ -16,15 +16,18 @@ def get_inventory():
     """ """
     with db.engine.begin() as connection:
         #find gold
-        q1 = sqlalchemy.text("SELECT stock, sku FROM inventory WHERE sku = 'GOLD'")
+        q1 = sqlalchemy.text("SELECT COALESCE(SUM(change), 0) stock FROM transactions \
+                             WHERE sku = 'GOLD'")
         gold = connection.execute(q1).first().stock
         #find number of potions
-        q2 = sqlalchemy.text("SELECT stock, sku FROM inventory WHERE sku IN (SELECT sku FROM potions)")
+        q2 = sqlalchemy.text("SELECT COALESCE(SUM(CHANGE), 0) stock, sku FROM transactions \
+                             WHERE sku IN (SELECT sku FROM potions) GROUP BY sku")
         pots = connection.execute(q2).all()
         pots = [r.stock for r in pots]
         pots = sum(pots)
         #find the total mls
-        q3 = sqlalchemy.text("SELECT stock, sku FROM inventory WHERE sku IN (SELECT sku FROM ingredients)")
+        q3 = sqlalchemy.text("SELECT COALESCE(SUM(CHANGE), 0) stock, sku FROM transactions \
+                             WHERE sku IN (SELECT sku FROM ingredients) GROUP BY sku")
         mls = connection.execute(q3).all()
         mls = [r.stock for r in mls]
         mls = sum(mls)

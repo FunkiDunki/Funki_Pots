@@ -39,18 +39,13 @@ class CartItem(BaseModel):
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
     with db.engine.begin() as connection:
-        price = connection.execute(
-            sqlalchemy.text("SELECT price FROM potions WHERE sku = :sk"),
-            { 'sk': item_sku }
-        ).first().price
         connection.execute(
-            sqlalchemy.text("INSERT INTO cart_items (cart_id, item_sku, amount, historic_price) \
-                            VALUES (:cart, :sk, :am, :price)"),
+            sqlalchemy.text("INSERT INTO cart_items (cart_id, item_sku, amount) \
+                            VALUES (:cart, :sk, :am)"),
             {
                 'cart': cart_id,
                 'sk': item_sku,
-                'am': cart_item.quantity,
-                'price': price
+                'am': cart_item.quantity
             }
         )
     return "OK"
@@ -67,34 +62,56 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     with db.engine.begin() as connection:
         #find all the purchases made
         purchases = connection.execute(
-            sqlalchemy.text("SELECT item_sku, historic_price, amount FROM cart_items WHERE cart_items.cart_id = :cid"),
+            sqlalchemy.text("SELECT cart_items.id id, cart_items.item_sku sku, cart_items.amount amount, potions.price price \
+                            FROM cart_items JOIN potions ON cart_items.item_sku = potions.sku \
+                            WHERE cart_items.cart_id = :cid"),
             {
                 'cid':cart_id
             }
         ).all()
 
-    gold_paid = 0
-    pots_bought = 0
+    gold_total = 0
+    pots_total = 0
 
     with db.engine.begin() as connection:
         for purchase in purchases:
-            gold_paid += purchase.historic_price * purchase.amount
-            pots_bought += purchase.amount
-            connection.execute(
-                sqlalchemy.text("UPDATE inventory SET stock = stock - :am WHERE sku = :sk"),
+            gold = purchase.price * purchase.amount
+            gold_total += gold
+            pots = purchase.amount
+            pots_total += pots
+            pot_transaction = connection.execute(
+                sqlalchemy.text("INSERT INTO transactions (sku, change, description) \
+                                VALUES (:sk, :ch, :desc) \
+                                RETURNING transaction_id"),
                 {
-                    'am': purchase.amount,
-                    'sk': purchase.item_sku
+                    'ch': -purchase.amount,
+                    'sk': purchase.sku,
+                    'desc': f"someone buys this potion"
+                }
+            ).first()
+            gold_transaction = connection.execute(
+                sqlalchemy.text("INSERT INTO transactions (sku, change, description) \
+                                VALUES (:sk, :ch, :desc) \
+                                RETURNING transaction_id"),
+                {
+                    'sk': 'GOLD',
+                    'ch': gold,
+                    'desc': f"someone buys a potion"
+                }
+            ).first()
+            #now we update our cart_item to connect to the transaction
+            connection.execute(
+                sqlalchemy.text("UPDATE cart_items \
+                                SET potion_transaction = :pt, gold_transaction = :gt \
+                                WHERE id = :cit_id"),
+                {
+                    'pt': pot_transaction.transaction_id,
+                    'gt': gold_transaction.transaction_id,
+                    'cit_id': purchase.id
                 }
             )
-        #now we update our gold
-        
-        connection.execute(
-            sqlalchemy.text("UPDATE inventory SET stock = stock + :g WHERE sku = 'GOLD'"),
-            {
-                'g': gold_paid
-            }
-        )
+
+        #also, we want to store the payment they gave us
         connection.execute(
             sqlalchemy.text("UPDATE carts SET payment = :pay WHERE cart_id = :cid"),
             {
@@ -104,4 +121,4 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         )
     
     
-    return {"total_potions_bought": pots_bought, "total_gold_paid": gold_paid}
+    return {"total_potions_bought": pots_total, "total_gold_paid": gold_total}
