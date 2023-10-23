@@ -26,7 +26,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
 
     #for each potion delivered, subtract the ingredients used and add the resulting potion
     for potInv in potions_delivered:
-        ingredients = [ingredients[i] - (amount * potInv.quantity) for i, amount in enumerate(potInv.potion_type)]
+        ingredients = [ingredients[i] + (amount * potInv.quantity) for i, amount in enumerate(potInv.potion_type)]
         pots.append({
             "potion-type": potInv.potion_type,
             "quantity": potInv.quantity
@@ -36,21 +36,22 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     with db.engine.begin() as connection:
         for i, ml in enumerate(ingredients):
             connection.execute(
-                sqlalchemy.text("UPDATE inventory SET stock = stock + :am \
-                                WHERE sku IN (SELECT sku FROM ingredients WHERE ingredient_order = :idx )"),
+                sqlalchemy.text("INSERT INTO transactions (sku, change, description) \
+                                VALUES ((SELECT sku FROM ingredients WHERE ingredient_order = :idx), :am, :desc)"),
                 {
-                    'am': ml,
-                    'idx': i
+                    'idx': i,
+                    'am': -ml,
+                    'desc': "bottled using this ingredient"
                 }
             )
         for i, pot in enumerate(pots):
-            pt = pot["potion-type"]
             connection.execute(
-                sqlalchemy.text("UPDATE inventory SET stock = stock + :am \
-                                WHERE sku IN (SELECT sku FROM potions WHERE recipe = :rec)"),
+                sqlalchemy.text("INSERT INTO transactions (sku, change, description) \
+                                VALUES ((SELECT sku FROM potions WHERE recipe = :rec), :am, :desc)"),
                 {
                     'am': pot["quantity"],
-                    'rec': pt
+                    'rec': pot["potion-type"],
+                    'desc': "bottled some of this potion"
                 }
             )
     return "OK"
@@ -64,16 +65,18 @@ def get_bottle_plan():
     #find our current stock of ingredients, and our potion wishlist 
     with db.engine.begin() as connection:
         ingredients = connection.execute(
-            sqlalchemy.text("SELECT inventory.sku as sku, ingredient_order, stock FROM \
-                            inventory JOIN ingredients ON inventory.sku = ingredients.sku \
+            sqlalchemy.text("SELECT ingredients.sku sku, ingredients.ingredient_order, COALESCE(SUM(change), 0) stock FROM \
+                            transactions JOIN ingredients ON transactions.sku = ingredients.sku \
+                            GROUP BY ingredients.sku, ingredient_order\
                             ORDER BY ingredient_order ASC")
         ).all()
         wishlist = connection.execute(
-            sqlalchemy.text("SELECT recipe, stock, amount FROM \
-                            inventory JOIN \
+            sqlalchemy.text("SELECT recipe, COALESCE(SUM(change), 0) stock, amount FROM \
+                            transactions RIGHT JOIN \
                             (SELECT sku, priority, amount, recipe FROM \
                             potions JOIN potions_wishlist ON potions.id = potions_wishlist.potion_id) AS pots \
-                            ON inventory.sku = pots.sku \
+                            ON transactions.sku = pots.sku \
+                            GROUP BY pots.sku, recipe, amount, pots.priority \
                             ORDER BY pots.priority ASC")
         ).all()
     
