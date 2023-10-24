@@ -66,7 +66,7 @@ def get_bottle_plan():
     with db.engine.begin() as connection:
         ingredients = connection.execute(
             sqlalchemy.text("SELECT ingredients.sku sku, ingredients.ingredient_order, COALESCE(SUM(change), 0) stock FROM \
-                            transactions JOIN ingredients ON transactions.sku = ingredients.sku \
+                            transactions RIGHT JOIN ingredients ON transactions.sku = ingredients.sku \
                             GROUP BY ingredients.sku, ingredient_order\
                             ORDER BY ingredient_order ASC")
         ).all()
