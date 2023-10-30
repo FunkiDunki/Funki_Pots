@@ -60,6 +60,7 @@ def search_orders(
         search_page = 0
     else:
         search_page = int(search_page)
+
     sql = f"WITH LineItems AS (\
                 SELECT cart_items.id id, cart_items.cart_id c_id, cart_items.item_sku sku, cart_items.when_created timestamp, transactions.change total\
                 FROM cart_items JOIN transactions ON cart_items.gold_transaction = transactions.transaction_id \
@@ -72,7 +73,7 @@ def search_orders(
             SELECT line_id, item_sku, customer_name, line_item_total, timestamp, line_item_total \
             FROM Result \
             WHERE customer_name ILIKE :cust_name AND item_sku ILIKE :sku \
-            ORDER BY {str(sort_col)} {str(sort_order)} \
+            ORDER BY {str(sort_col.name)} {str(sort_order.name)} \
             OFFSET :offset \
             LIMIT 6"
     
