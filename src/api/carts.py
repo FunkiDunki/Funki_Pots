@@ -54,17 +54,53 @@ def search_orders(
     time is 5 total line items.
     """
 
+    #line_item: line_item_id=cart_items.id, item_sku=cart_items.sku,
+    #  customer_name=carts.name, line_item_total=transaction.change, timestamp=cart_items.created_at
+    if search_page == "":
+        search_page = 0
+    else:
+        search_page = int(search_page)
+    sql = f"WITH LineItems AS (\
+                SELECT cart_items.id id, cart_items.cart_id c_id, cart_items.item_sku sku, cart_items.when_created timestamp, transactions.change total\
+                FROM cart_items JOIN transactions ON cart_items.gold_transaction = transactions.transaction_id \
+            ),\
+            Result AS (\
+            SELECT LineItems.id line_id, sku item_sku, customer_name, total line_item_total, timestamp \
+            FROM LineItems JOIN carts ON LineItems.c_id = carts.cart_id \
+            WHERE customer_name ILIKE :cust_name AND sku ILIKE :sku \
+            ) \
+            SELECT line_id, item_sku, customer_name, line_item_total, timestamp, line_item_total \
+            FROM Result \
+            WHERE customer_name ILIKE :cust_name AND item_sku ILIKE :sku \
+            ORDER BY {sort_col} {sort_order} \
+            OFFSET :offset \
+            LIMIT 6"
+    
+    with db.engine.begin() as connection:
+        result = connection.execute(
+            sqlalchemy.text(sql),
+            {
+                'cust_name': f"%{customer_name}%",
+                'sku': f"%{potion_sku}%",
+                'sort_col' : sort_col,
+                'offset': search_page * 5
+            }
+        ).all()
+        result = [res for res in result]
+    
+
     return {
-        "previous": "",
-        "next": "",
+        "previous": f"{search_page-1}" if search_page > 0 else "",
+        "next": f"{search_page+1}" if len(result) == 6 else "",
         "results": [
             {
-                "line_item_id": 1,
-                "item_sku": "1 oblivion potion",
-                "customer_name": "Scaramouche",
-                "line_item_total": 50,
-                "timestamp": "2021-01-01T00:00:00Z",
+                "line_item_id": res.line_id,
+                "item_sku": res.item_sku,
+                "customer_name": res.customer_name,
+                "line_item_total": res.line_item_total,
+                "timestamp": res.timestamp
             }
+            for res in result[:5]
         ],
     }
 
