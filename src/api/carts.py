@@ -72,7 +72,7 @@ def search_orders(
             SELECT line_id, item_sku, customer_name, line_item_total, timestamp, line_item_total \
             FROM Result \
             WHERE customer_name ILIKE :cust_name AND item_sku ILIKE :sku \
-            ORDER BY {sort_col} {sort_order} \
+            ORDER BY {str(sort_col)} {str(sort_order)} \
             OFFSET :offset \
             LIMIT 6"
     
@@ -82,7 +82,6 @@ def search_orders(
             {
                 'cust_name': f"%{customer_name}%",
                 'sku': f"%{potion_sku}%",
-                'sort_col' : sort_col,
                 'offset': search_page * 5
             }
         ).all()
