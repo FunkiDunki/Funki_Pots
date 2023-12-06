@@ -13,14 +13,9 @@ router = APIRouter(
 @router.post("/reset")
 def reset():
     """
-    Reset the game state. Gold goes to 100, all potions are removed from
-    inventory, and all barrels are removed from inventory. Carts are all reset.
+    Reset the elo state. All games are removed from the database
     """
-    with db.engine.begin() as connection:
-        q2 = sqlalchemy.text("UPDATE inventory SET stock = 0")
-        connection.execute(q2)
-        q2 = sqlalchemy.text("UPDATE inventory SET stock = 100 WHERE name = 'gold'")
-        connection.execute(q2)
+    
     return "OK"
 
 
@@ -28,7 +23,6 @@ def reset():
 def get_shop_info():
     """ """
 
-    # TODO: Change me!
     return {
         "shop_name": "Funki Pots",
         "shop_owner": "Nicholas Hotelling",
